@@ -1,0 +1,16 @@
+"no_battery" = "未检测到内置电池";
+"charging" = "正在充电";
+"fully_charged" = "已充满 · 已接电源";
+"plugged_in" = "已接电源 · 未充电";
+"on_battery" = "使用电池";
+"time_to_full" = "充满约需 %d小时%d分钟";
+"time_remaining" = "预计剩余 %d小时%d分钟";
+"show_percentage" = "显示电量百分比";
+"launch_at_login" = "登录时启动";
+"login_approval" = "登录启动（需要系统批准）…";
+"about" = "关于 Battery Pal";
+"quit" = "退出";
+"login_error_title" = "无法更新登录启动设置";
+"login_error_body" = "请先将 Battery Pal.app 放入 Applications 文件夹后重试。";
+"ok" = "好";
+"credits" = "给菜单栏里的电池一个表情。\n原创矢量图标 · 无联网 · 无数据收集";

@@ -28,7 +28,7 @@ bash scripts/build.sh
 open "dist/Battery Pal.app"
 ```
 
-脚本为当前机器架构编译，最低系统版本 macOS 13，生成本地 ad-hoc 签名。交付的二进制为 Apple Silicon 版本；Intel Mac 可在本机重新编译。源码只有 `Sources/main.swift`，可直接使用编辑器维护，不依赖 Xcode 工程或包管理器。
+脚本为当前机器架构编译，最低系统版本 macOS 13，生成本地 ad-hoc 签名。交付的二进制为 Apple Silicon 版本；Intel Mac 可在本机重新编译。主程序为 `Sources/main.swift`，语言选择在 `Sources/Localization.swift`，翻译在 `Resources/*.lproj/Localizable.strings`，可直接使用编辑器维护，不依赖 Xcode 工程或包管理器。
 
 ## 验证与限制
 
@@ -61,3 +61,19 @@ bash scripts/package-dmg.sh
 
 生成的 DMG 和 SHA-256 文件在 `dist/` 中。DMG 包含 App、Applications 快捷链接和安装说明。
 版本号目前在 `scripts/build.sh` 的 Info.plist 中设置；发布新版时也需同步关于面板及发布说明。
+
+## 界面语言
+
+跟随系统首选语言（或 macOS 为此 App 设置的首选语言）：中文使用对应的简体/繁体文案，其他语言默认英文。只检查首选项，不会因后备语言列表包含中文而显示中文。更改系统语言后，请退出并重新打开 App。
+
+菜单、状态、时间估算、工具提示、无障碍描述、关于文案与登录设置错误说明均已本地化；系统框架返回的错误详情沿用系统提供的语言。构建会自动检查语言规则和翻译资源。
+
+## 应用图标
+
+`Resources/AppIcon.icns` 提供 Finder、启动台和关于窗口图标。原创矢量生成器在 `scripts/GenerateAppIcon.swift`；重建方式：
+
+```sh
+xcrun swift -module-cache-path .build/module-cache scripts/GenerateAppIcon.swift "$PWD"
+iconutil -c icns .build/AppIcon.iconset -o Resources/AppIcon.icns
+bash scripts/build.sh
+```

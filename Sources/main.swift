@@ -227,7 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         button.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         button.title = showPercentage ? " \(state.percent.map { "\($0)%" } ?? "—")" : ""
         button.toolTip = "Battery Pal · \(statusText)"
-        button.setAccessibilityLabel("Battery Pal，\(statusText)")
+        button.setAccessibilityLabel("Battery Pal · \(statusText)")
     }
     private func updateAnimation() {
         let enabled = ChargingAnimation.enabled(charging: state.charging, hasBattery: state.percent != nil,
@@ -279,8 +279,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         isBlinking = false
     }
     private var statusText: String {
-        guard let percent = state.percent else { return "未检测到内置电池" }
-        let status = state.charging ? "正在充电" : (state.pluggedIn ? (percent == 100 ? "已充满 · 已接电源" : "已接电源 · 未充电") : "使用电池")
+        guard let percent = state.percent else { return L10n.text("no_battery") }
+        let key = state.charging ? "charging" : (state.pluggedIn ? (percent == 100 ? "fully_charged" : "plugged_in") : "on_battery")
+        let status = L10n.text(key)
         return "\(percent)% · \(status)"
     }
     // [AppKit] NSMenuDelegate 回调；菜单项的增删、分隔线、勾选状态都由 AppKit 处理。
@@ -290,18 +291,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add("Battery Pal", to: menu)
         add(statusText, to: menu)
         if let minutes = state.minutes, state.charging || !state.pluggedIn {
-            add("\(state.charging ? "充满约需" : "预计剩余") \(minutes / 60)小时\(minutes % 60)分钟", to: menu)
+            add(L10n.duration(minutes: minutes, charging: state.charging), to: menu)
         }
         menu.addItem(.separator())
-        let percent = add("显示电量百分比", action: #selector(togglePercentage), to: menu)
+        let percent = add(L10n.text("show_percentage"), action: #selector(togglePercentage), to: menu)
         percent.state = showPercentage ? .on : .off
         // [ServiceManagement] 查询主 App 的登录启动状态。
         let service = SMAppService.mainApp
-        let login = add(service.status == .requiresApproval ? "登录启动（需要系统批准）…" : "登录时启动", action: #selector(toggleLogin), to: menu)
+        let login = add(L10n.text(service.status == .requiresApproval ? "login_approval" : "launch_at_login"), action: #selector(toggleLogin), to: menu)
         login.state = service.status == .enabled || service.status == .requiresApproval ? .on : .off
         menu.addItem(.separator())
-        add("关于 Battery Pal", action: #selector(about), to: menu)
-        let quit = add("退出", action: #selector(quit), to: menu)
+        add(L10n.text("about"), action: #selector(about), to: menu)
+        let quit = add(L10n.text("quit"), action: #selector(quit), to: menu)
         quit.keyEquivalent = "q"
     }
     @discardableResult private func add(_ title: String, action: Selector? = nil, to menu: NSMenu) -> NSMenuItem {
@@ -325,8 +326,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } catch {
             // [AppKit] NSAlert 显示对话框；NSApp 是当前 NSApplication 的全局引用。
             let alert = NSAlert()
-            alert.messageText = "无法更新登录启动设置"
-            alert.informativeText = "请先将 Battery Pal.app 放入 Applications 文件夹后重试。\n\(error.localizedDescription)"
+            alert.messageText = L10n.text("login_error_title")
+            // 系统错误详情来自系统框架；App 自己提供的说明按所选语言显示。
+            alert.informativeText = L10n.text("login_error_body") + "\n" + error.localizedDescription
+            alert.addButton(withTitle: L10n.text("ok"))
             NSApp.activate(ignoringOtherApps: true)
             alert.runModal()
         }
@@ -334,7 +337,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // [AppKit] 激活应用并显示系统标准“关于”面板。
     @objc private func about() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Battery Pal", .applicationVersion: "1.0.0", .credits: NSAttributedString(string: "给菜单栏里的电池一个表情。\n原创矢量图标 · 无联网 · 无数据收集")])
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Battery Pal", .applicationVersion: "1.0.1", .credits: NSAttributedString(string: L10n.text("credits"))])
     }
     // [AppKit] 请求结束应用。
     @objc private func quit() { NSApp.terminate(nil) }
@@ -377,6 +380,23 @@ if let previewIndex = CommandLine.arguments.firstIndex(of: "--render-preview"), 
     if let tiff = preview.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff), let png = bitmap.representation(using: .png, properties: [:]) {
         try png.write(to: URL(fileURLWithPath: CommandLine.arguments[previewIndex + 1]))
     }
+} else if CommandLine.arguments.contains("--localization-test") {
+    let languageCases: [([String], String)] = [([], "en"), (["en-US", "zh-Hans"], "en"),
+        (["fr-FR", "zh-Hans"], "en"), (["ja-JP"], "en"), (["zh"], "zh-Hans"),
+        (["zh-CN"], "zh-Hans"), (["zh-SG"], "zh-Hans"), (["zh-Hans-TW"], "zh-Hans"),
+        (["zh-TW"], "zh-Hant"), (["zh_HK"], "zh-Hant"), (["zh-Hant-CN"], "zh-Hant")]
+    for (languages, expected) in languageCases { precondition(L10n.language(for: languages) == expected) }
+    let keys = ["no_battery", "charging", "fully_charged", "plugged_in", "on_battery", "time_to_full", "time_remaining", "show_percentage", "launch_at_login", "login_approval", "about", "quit", "login_error_title", "login_error_body", "ok", "credits"]
+    for language in ["en", "zh-Hans", "zh-Hant"] {
+        for key in keys {
+            precondition(L10n.text(key, language: language) != key, "Missing translation: \(language)/\(key)")
+        }
+    }
+    precondition(L10n.duration(minutes: 65, charging: true, language: "en") == "About 1 h 5 min until full")
+    precondition(L10n.duration(minutes: 65, charging: false, language: "zh-Hans") == "预计剩余 1小时5分钟")
+    precondition(L10n.text("quit", language: "unsupported") == "Quit")
+    print("PASS: language selection, translation resources and duration formatting")
+    print("Language: \(L10n.currentLanguage); Menu: \(L10n.text("show_percentage")) / \(L10n.text("quit"))")
 } else if CommandLine.arguments.contains("--self-test") {
     // 覆盖两个状态边界、充电优先级，以及接电但未充电的情况。
     var cases: [(BatteryState, String)] = [(.unavailable, "unknown")]

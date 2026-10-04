@@ -1,4 +1,4 @@
-Battery Pal 1.0.0 — Apple Silicon / macOS 13+
+Battery Pal 1.0.1 — Apple Silicon / macOS 13+
 
 安装 / Install
 将 Battery Pal.app 拖到 Applications，再从应用程序文件夹打开。
