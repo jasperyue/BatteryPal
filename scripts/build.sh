@@ -13,6 +13,8 @@ xcrun swiftc -O -swift-version 5 -target "$(uname -m)-apple-macosx13.0" \
   "$ROOT/Sources/"*.swift "$ROOT/Sources/Themes/"*.swift -o "$APP/Contents/MacOS/BatteryPie"
 cp -R "$ROOT/Resources/"*.lproj "$APP/Contents/Resources/"
 cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+mkdir -p "$APP/Contents/Resources/Themes/pineapple"
+cp "$ROOT/Resources/Themes/pineapple/"*.svg "$APP/Contents/Resources/Themes/pineapple/"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
