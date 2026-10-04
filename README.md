@@ -1,4 +1,4 @@
-# Battery Pal
+# Battery Pie
 
 一个原生 macOS 菜单栏电池小工具。灵感来自 Battery Buddy，独立实现，未使用其源码、名称或图像资源。
 
@@ -15,7 +15,7 @@
 
 ## 运行
 
-要求 macOS 13 或更新版本。双击 `dist/Battery Pal.app` 即可运行，图标出现在菜单栏，不显示 Dock 图标。若菜单栏空间不足，请先腾出空间。
+要求 macOS 13 或更新版本。双击 `dist/Battery Pie.app` 即可运行，图标出现在菜单栏，不显示 Dock 图标。若菜单栏空间不足，请先腾出空间。
 
 建议将 App 拖入 `/Applications` 后再从菜单中启用登录启动。它会新增一个菜单栏图标；可自行在系统设置中关闭系统自带电池图标。
 
@@ -25,7 +25,7 @@
 
 ```sh
 bash scripts/build.sh
-open "dist/Battery Pal.app"
+open "dist/Battery Pie.app"
 ```
 
 脚本为当前机器架构编译，最低系统版本 macOS 13，生成本地 ad-hoc 签名。交付的二进制为 Apple Silicon 版本；Intel Mac 可在本机重新编译。主程序为 `Sources/main.swift`，语言选择在 `Sources/Localization.swift`，翻译在 `Resources/*.lproj/Localizable.strings`，可直接使用编辑器维护，不依赖 Xcode 工程或包管理器。
@@ -40,14 +40,14 @@ open "dist/Battery Pal.app"
 
 ## 下载与 Homebrew
 
-从 [GitHub Releases](https://github.com/jasperyue/BatteryPal/releases) 下载 DMG，将 App 拖入 Applications。
+从 [GitHub Releases](https://github.com/jasperyue/BatteryPie/releases) 下载 DMG，将 App 拖入 Applications。
 当前发布包支持 Apple Silicon / macOS 13+。
 
 发布 Homebrew tap 后，可使用：
 
 ```sh
-brew install --cask jasperyue/tap/battery-pal
-brew upgrade --cask battery-pal
+brew install --cask jasperyue/tap/battery-pie
+brew upgrade --cask battery-pie
 ```
 
 此版本未经过 Apple 公证。首次打开若被拦截，请确认来源可信，再使用系统设置 → 隐私与安全性 → 仍要打开。

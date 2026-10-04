@@ -8,9 +8,9 @@
 "show_percentage" = "Show Battery Percentage";
 "launch_at_login" = "Launch at Login";
 "login_approval" = "Launch at Login (Approval Required)…";
-"about" = "About Battery Pal";
+"about" = "About Battery Pie";
 "quit" = "Quit";
 "login_error_title" = "Could Not Update Login Settings";
-"login_error_body" = "Move Battery Pal.app to Applications and try again.";
+"login_error_body" = "Move Battery Pie.app to Applications and try again.";
 "ok" = "OK";
 "credits" = "A little personality for your menu bar battery.\nOriginal vector artwork · No network access · No data collection";

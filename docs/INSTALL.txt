@@ -1,8 +1,8 @@
-Battery Pal 1.0.1 — Apple Silicon / macOS 13+
+Battery Pie 1.1.0 — Apple Silicon / macOS 13+
 
 安装 / Install
-将 Battery Pal.app 拖到 Applications，再从应用程序文件夹打开。
-Drag Battery Pal.app to Applications, then launch it from Applications.
+将 Battery Pie.app 拖到 Applications，再从应用程序文件夹打开。
+Drag Battery Pie.app to Applications, then launch it from Applications.
 
 本版本使用 ad-hoc 本地签名，未提交 Apple 公证。
 首次打开如被 macOS 拦截，请在确认下载来源可信后：
@@ -16,5 +16,5 @@ System Settings → Privacy & Security → Open Anyway.
 更新前请从菜单中退出旧版，再替换 App。
 The app lives in the menu bar. Quit it before replacing it with a newer version.
 
-Source: https://github.com/jasperyue/BatteryPal
+Source: https://github.com/jasperyue/BatteryPie
 License: MIT

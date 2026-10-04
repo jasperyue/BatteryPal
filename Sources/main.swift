@@ -226,8 +226,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         button.imagePosition = .imageLeading
         button.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         button.title = showPercentage ? " \(state.percent.map { "\($0)%" } ?? "—")" : ""
-        button.toolTip = "Battery Pal · \(statusText)"
-        button.setAccessibilityLabel("Battery Pal · \(statusText)")
+        button.toolTip = "Battery Pie · \(statusText)"
+        button.setAccessibilityLabel("Battery Pie · \(statusText)")
     }
     private func updateAnimation() {
         let enabled = ChargingAnimation.enabled(charging: state.charging, hasBattery: state.percent != nil,
@@ -288,7 +288,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         refresh()
         menu.removeAllItems()
-        add("Battery Pal", to: menu)
+        add("Battery Pie", to: menu)
         add(statusText, to: menu)
         if let minutes = state.minutes, state.charging || !state.pluggedIn {
             add(L10n.duration(minutes: minutes, charging: state.charging), to: menu)
@@ -337,7 +337,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // [AppKit] 激活应用并显示系统标准“关于”面板。
     @objc private func about() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Battery Pal", .applicationVersion: "1.0.1", .credits: NSAttributedString(string: L10n.text("credits"))])
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Battery Pie", .applicationVersion: "1.1.0", .credits: NSAttributedString(string: L10n.text("credits"))])
     }
     // [AppKit] 请求结束应用。
     @objc private func quit() { NSApp.terminate(nil) }
