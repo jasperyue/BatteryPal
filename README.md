@@ -5,7 +5,7 @@
 ## 功能
 
 - 原创矢量电池表情：low（0–20%）疲惫、normal（21–79%）微笑、high（80–100%）笑眼、charging 眨眼配闪电；充电状态优先于电量区间；下方细线表示电量。
-- 图标主题可切换：默认电池表情，另提供菠萝主题（叶片冠 + 菱形纹理果身），两者共用同一套状态规则与充电动画。
+- 图标主题可切换：默认电池表情，另提供菠萝主题（OpenDesign 方案 A：圆润果身、短叶冠、边缘纹理），两者共用同一套状态规则与充电动画。
 - 实时读取内置电池，监听系统电源变化，唤醒后刷新，无定时轮询。
 - 可切换电量百分比并保存偏好。
 - 菜单显示供电状态、系统提供的预计剩余/充满时间。
@@ -61,7 +61,17 @@ bash scripts/package-dmg.sh
 ```
 
 生成的 DMG 和 SHA-256 文件在 `dist/` 中。DMG 包含 App、Applications 快捷链接和安装说明。
-版本号目前在 `scripts/build.sh` 的 Info.plist 中设置；发布新版时也需同步关于面板及发布说明。
+版本号在 `VERSION`，构建号在 `BUILD_NUMBER`；关于面板自动读取应用版本。发布说明位于 `docs/RELEASE-v版本号.md`。
+
+## 一键发布 Homebrew
+
+首次运行 `gh auth login`，确保账号能写入 `jasperyue/BatteryPie` 和 `jasperyue/homebrew-tap`。更新版本、构建号和发布说明，提交源码后运行：
+
+```sh
+bash scripts/release-homebrew.sh
+```
+
+脚本自动构建并测试、制作 DMG、推送当前分支和版本 tag、上传 GitHub Release、下载验证校验值，然后发布 Release 并更新 tap。使用 `--dry-run` 查看计划；发布中断后使用 `--resume` 复用已上传资产继续完成，不重新打包或覆盖已有版本。详见 [发布流程](docs/RELEASING.md)。
 
 ## 界面语言
 
@@ -78,3 +88,7 @@ xcrun swift -module-cache-path .build/module-cache scripts/GenerateAppIcon.swift
 iconutil -c icns .build/AppIcon.iconset -o Resources/AppIcon.icns
 bash scripts/build.sh
 ```
+
+## 主题开发
+
+主题已拆分为独立渲染器和统一注册表，详见 [主题扩展说明](docs/THEMES.md)。
