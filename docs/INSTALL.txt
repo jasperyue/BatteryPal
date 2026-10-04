@@ -1,0 +1,20 @@
+Battery Pal 1.0.0 — Apple Silicon / macOS 13+
+
+安装 / Install
+将 Battery Pal.app 拖到 Applications，再从应用程序文件夹打开。
+Drag Battery Pal.app to Applications, then launch it from Applications.
+
+本版本使用 ad-hoc 本地签名，未提交 Apple 公证。
+首次打开如被 macOS 拦截，请在确认下载来源可信后：
+系统设置 → 隐私与安全性 → 仍要打开。
+This release is ad-hoc signed and is not notarized by Apple.
+If macOS blocks the first launch and you trust the source, use:
+System Settings → Privacy & Security → Open Anyway.
+
+应用只显示菜单栏图标，不显示 Dock 图标。
+登录启动默认关闭；可在菜单中开启。
+更新前请从菜单中退出旧版，再替换 App。
+The app lives in the menu bar. Quit it before replacing it with a newer version.
+
+Source: https://github.com/jasperyue/BatteryPal
+License: MIT

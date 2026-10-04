@@ -34,6 +34,30 @@ open "dist/Battery Pal.app"
 
 构建时会验证低电量边界、充电优先级、无电池状态及真实电源读取。运行中的菜单交互、不同外观和登录启动仍应在目标 Mac 上验证。系统没有提供时间估算时不会显示估算值。
 
-本地构建未使用 Developer ID 签名或 Apple 公证。若要公开分发，需要用自己的开发者身份完成签名、公证，并自行配置更新渠道。本项目不控制充电上限。
+本地构建未使用 Developer ID 签名或 Apple 公证。可以直接分享该版本；若希望减少首次打开时的安全拦截，可另行使用 Developer ID 签名并提交 Apple 公证。更新通过 Homebrew 或手动替换 App 完成。本项目不控制充电上限。
 
 许可证：MIT，见 LICENSE。
+
+## 下载与 Homebrew
+
+从 [GitHub Releases](https://github.com/jasperyue/BatteryPal/releases) 下载 DMG，将 App 拖入 Applications。
+当前发布包支持 Apple Silicon / macOS 13+。
+
+发布 Homebrew tap 后，可使用：
+
+```sh
+brew install --cask jasperyue/tap/battery-pal
+brew upgrade --cask battery-pal
+```
+
+此版本未经过 Apple 公证。首次打开若被拦截，请确认来源可信，再使用系统设置 → 隐私与安全性 → 仍要打开。
+Homebrew 安装不会跳过 macOS 的安全检查。
+
+## 制作 DMG
+
+```sh
+bash scripts/package-dmg.sh
+```
+
+生成的 DMG 和 SHA-256 文件在 `dist/` 中。DMG 包含 App、Applications 快捷链接和安装说明。
+版本号目前在 `scripts/build.sh` 的 Info.plist 中设置；发布新版时也需同步关于面板及发布说明。
