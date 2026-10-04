@@ -12,25 +12,42 @@ struct IconTheme: Hashable {
     let labelKey: String
     let previewTitle: String
     private let renderer: IconThemeRenderer.Type
+    private let svgAssets: SVGThemeAssets?
+    private let importedName: String?
 
     init(id: String, labelKey: String, previewTitle: String, renderer: IconThemeRenderer.Type) {
         self.rawValue = id
         self.labelKey = labelKey
         self.previewTitle = previewTitle
         self.renderer = renderer
+        self.svgAssets = nil
+        self.importedName = nil
     }
+    init(id: String, name: String, assets: SVGThemeAssets) {
+        rawValue = id
+        labelKey = ""
+        previewTitle = name
+        renderer = BatteryTheme.self
+        svgAssets = assets
+        importedName = name
+    }
+    var displayName: String { importedName ?? L10n.text(labelKey) }
+    var isImported: Bool { svgAssets != nil }
     init?(rawValue: String) {
         guard let theme = Self.allCases.first(where: { $0.rawValue == rawValue }) else { return nil }
         self = theme
     }
     static let battery = IconTheme(id: "battery", labelKey: "theme_battery", previewTitle: "BATTERY", renderer: BatteryTheme.self)
     static let pineapple = IconTheme(id: "pineapple", labelKey: "theme_pineapple", previewTitle: "PINEAPPLE", renderer: PineappleTheme.self)
-    static let allCases: [IconTheme] = [.battery, .pineapple]
+    static var allCases: [IconTheme] { [.battery, .pineapple] + ThemeLibrary.shared.themes }
 
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.rawValue == rhs.rawValue }
     func hash(into hasher: inout Hasher) { hasher.combine(rawValue) }
     func image(_ state: BatteryState, ink: NSColor, boltOpacity: CGFloat, blink: Bool) -> NSImage {
-        renderer.image(state, ink: ink, boltOpacity: boltOpacity, blink: blink)
+        if let assets = svgAssets, let layer = assets.image(named: PineappleTheme.resourceName(state, boltOpacity: boltOpacity, blink: blink)) {
+            return PineappleTheme.compose(layer, state: state, ink: ink)
+        }
+        return renderer.image(state, ink: ink, boltOpacity: boltOpacity, blink: blink)
     }
 }
 

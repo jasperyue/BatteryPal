@@ -87,5 +87,70 @@ enum TestSVGTheme {
         let fallback = PineappleFallbackArt.image(charging, blink: true)
         precondition(fallback.isTemplate && bytes(fallback).contains { $0 != 0 })
         print("PASS: native drawing compatibility fallback")
+        try testLibrary()
+    }
+
+    static func testLibrary() throws {
+        let fm = FileManager.default
+        let temp = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try fm.createDirectory(at: temp, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: temp) }
+        let source = temp.appendingPathComponent("source")
+        try fm.copyItem(at: PineappleTheme.assets.directory, to: source)
+        let library = ThemeLibrary(directory: temp.appendingPathComponent("library"))
+        precondition(!fm.fileExists(atPath: library.directory.path))
+        try library.ensureDirectory()
+        precondition(fm.fileExists(atPath: library.directory.path))
+        let imported = try library.importTheme(from: source, name: "Test SVG Theme")
+        precondition(imported.isImported && library.themes.count == 1)
+        let reopened = ThemeLibrary(directory: library.directory)
+        precondition(reopened.themes.first?.rawValue == imported.rawValue)
+        precondition(reopened.themes.first?.displayName == "Test SVG Theme")
+        let state = BatteryState(percent: 52, charging: true, pluggedIn: true, minutes: nil)
+        precondition(bytes(imported.image(state, ink: .black, boltOpacity: 1, blink: false))
+            != bytes(imported.image(state, ink: .black, boltOpacity: 0.35, blink: false)))
+        func rejected(_ folder: URL) throws {
+            let before = library.themes.count
+            do {
+                _ = try library.importTheme(from: folder, name: "Rejected")
+                preconditionFailure("Invalid SVG group was imported")
+            } catch is ThemeImportError {}
+            precondition(library.themes.count == before, "Rejected import must not add a theme")
+        }
+        let low = source.appendingPathComponent("low.svg")
+        let original = try Data(contentsOf: low)
+        try fm.removeItem(at: low)
+        try rejected(source)
+        try original.write(to: low)
+        let extra = source.appendingPathComponent("extra.svg")
+        try original.write(to: extra)
+        try rejected(source)
+        try fm.removeItem(at: extra)
+        try Data(repeating: 32, count: ThemeSVGValidator.maxFileBytes + 1).write(to: low)
+        try rejected(source)
+        for bad in [
+            String(data: original, encoding: .utf8)!.replacingOccurrences(of: "width=\"28\"", with: "width=\"29\""),
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"18\" viewBox=\"0 0 28 18\"/>",
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"18\" viewBox=\"0 0 28 18\"><script>alert(1)</script></svg>",
+            "<!DOCTYPE svg [<!ENTITY example SYSTEM \"file:///etc/passwd\">]><svg width=\"28\" height=\"18\" viewBox=\"0 0 28 18\"/>"
+        ] {
+            try Data(bad.utf8).write(to: low)
+            try rejected(source)
+        }
+        try original.write(to: low)
+        let link = source.appendingPathComponent("low.svg")
+        try fm.removeItem(at: link)
+        try fm.createSymbolicLink(at: link, withDestinationURL: PineappleTheme.assets.directory.appendingPathComponent("low.svg"))
+        try rejected(source)
+        try fm.removeItem(at: link)
+        try original.write(to: link)
+        for file in ThemeLibrary.filenames {
+            let url = source.appendingPathComponent(file)
+            var data = try Data(contentsOf: url)
+            data.append(Data(("<!--" + String(repeating: " ", count: 90 * 1024) + "-->").utf8))
+            try data.write(to: url)
+        }
+        try rejected(source)
+        print("PASS: folder creation, atomic import, persistent IDs, preview frames and rejection of count/size/canvas/blank/script/entity/symlink violations")
     }
 }

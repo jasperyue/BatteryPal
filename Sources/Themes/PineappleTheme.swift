@@ -14,12 +14,17 @@ enum PineappleTheme: IconThemeRenderer {
 
     static func image(_ state: BatteryState, ink: NSColor = .black,
                       boltOpacity: CGFloat = 1, blink: Bool = false) -> NSImage {
-        let name = state.mood == "charging"
-            ? "charging-frame-\(blink ? 3 : (boltOpacity < 0.7 ? 2 : 1))" : state.mood
+        let name = resourceName(state, boltOpacity: boltOpacity, blink: blink)
         guard let layer = assets.image(named: name) else {
             // 不依赖私有 SVG API；解码不可用的系统继续使用已验证的原生路径。
             return PineappleFallbackArt.image(state, ink: ink, boltOpacity: boltOpacity, blink: blink)
         }
+        return compose(layer, state: state, ink: ink)
+    }
+    static func resourceName(_ state: BatteryState, boltOpacity: CGFloat, blink: Bool) -> String {
+        state.mood == "charging" ? "charging-frame-\(blink ? 3 : (boltOpacity < 0.7 ? 2 : 1))" : state.mood
+    }
+    static func compose(_ layer: NSImage, state: BatteryState, ink: NSColor) -> NSImage {
         let image = NSImage(size: NSSize(width: 28, height: 18), flipped: false) { _ in
             NSGraphicsContext.saveGraphicsState()
             defer { NSGraphicsContext.restoreGraphicsState() }

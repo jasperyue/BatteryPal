@@ -92,6 +92,10 @@ bash scripts/build.sh
 
 ## 主题开发
 
+菜单中的「主题库」展示内置和已导入主题，提供各状态及充电动画帧的预览和切换。主题库仅保存在本机。「打开主题文件夹」会自动创建 `~/Library/Application Support/Battery Pie/Themes/` 并在 Finder 中打开。
+
+使用「导出 SVG 模板」取得完整文件组，修改后在「导入 SVG 组」中选择文件夹并命名。每组必须包含 `low.svg`、`normal.svg`、`high.svg`、`unknown.svg`、`charging-frame-1.svg`、`charging-frame-2.svg`、`charging-frame-3.svg` 共 7 个文件；每个不超过 128 KiB，总计不超过 512 KiB。画布必须为 `width="28" height="18" viewBox="0 0 28 18"`。只支持静态矢量路径与基本形状，不支持脚本、外部资源、CSS 或 SVG 自带动画；充电动画由应用切换三帧完成。导入前会检查 SVG 可解码且图形非空，通过后才保存。修改已导入文件后点击「刷新」更新预览和菜单栏。
+
 主题已拆分为独立渲染器和统一注册表，详见 [主题扩展说明](docs/THEMES.md)。
 
 菠萝主题的 SVG 位于 `Resources/Themes/pineapple/`。想在已安装的应用中替换造型，可把同名 SVG 放入 `~/Library/Application Support/Battery Pie/Themes/pineapple/`，然后退出并重开应用。无需修改 Swift 或重新编译；缺失或无法解码的文件使用内置资源。详情和验证命令见主题扩展说明。

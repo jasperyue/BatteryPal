@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var notification: CFRunLoopSource? // [CoreFoundation] 保存电源通知事件源。
     private var state = BatteryState.unavailable
     private var observers: [NSObjectProtocol] = []
+    private var themeLibraryWindow: ThemeLibraryWindow?
     private var animationTimer: Timer? // [Foundation] 每秒一次，不查询电源，只切换缓存图像。
     private var blinkEnd: DispatchWorkItem? // [Dispatch] 眨眼 0.15 秒后的单次复原任务。
     private var chargingFrames: [NSImage] = []
@@ -33,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.menu = NSMenu()
         item.menu?.delegate = self
         refresh()
+        if CommandLine.arguments.contains("--theme-library") { openThemeLibrary() }
         // [IOKit.ps] 注册电源状态变化回调；该函数返回 CoreFoundation 事件源。
         // [Swift] Unmanaged 将当前对象转换为 C 回调携带的上下文指针。
         self.notification = IOPSNotificationCreateRunLoopSource({ context in
@@ -151,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let themeParent = NSMenuItem(title: L10n.text("icon_theme"), action: nil, keyEquivalent: "")
         let themeMenu = NSMenu()
         for theme in IconTheme.allCases {
-            let entry = NSMenuItem(title: L10n.text(theme.labelKey), action: #selector(selectTheme), keyEquivalent: "")
+            let entry = NSMenuItem(title: theme.displayName, action: #selector(selectTheme), keyEquivalent: "")
             entry.target = self
             entry.representedObject = theme.rawValue
             entry.state = theme == iconTheme ? .on : .off
@@ -159,6 +161,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         themeParent.submenu = themeMenu
         menu.addItem(themeParent)
+        add(L10n.text("theme_library"), action: #selector(openThemeLibrary), to: menu)
+        add(L10n.text("theme_open_folder"), action: #selector(openThemeFolder), to: menu)
         // [ServiceManagement] 查询主 App 的登录启动状态。
         let service = SMAppService.mainApp
         let login = add(L10n.text(service.status == .requiresApproval ? "login_approval" : "launch_at_login"), action: #selector(toggleLogin), to: menu)
@@ -177,6 +181,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return entry
     }
     @objc private func togglePercentage() { showPercentage.toggle(); refresh() }
+    @objc private func openThemeLibrary() {
+        if themeLibraryWindow == nil {
+            themeLibraryWindow = ThemeLibraryWindow(currentID: { [weak self] in self?.iconTheme.rawValue ?? "battery" },
+                select: { [weak self] theme in
+                    self?.iconTheme = theme
+                    self?.chargingFrames = []
+                    self?.refresh()
+                })
+        }
+        themeLibraryWindow?.present()
+    }
+    @objc private func openThemeFolder() {
+        do {
+            let directory = try ThemeLibrary.shared.ensureDirectory()
+            guard NSWorkspace.shared.open(directory) else { throw ThemeImportError("theme_folder_error") }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = L10n.text("theme_error_title")
+            alert.informativeText = error.localizedDescription
+            alert.addButton(withTitle: L10n.text("ok"))
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
+    }
     @objc private func selectTheme(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String, let theme = IconTheme(rawValue: id) else { return }
         iconTheme = theme

@@ -52,7 +52,7 @@ if let previewIndex = CommandLine.arguments.firstIndex(of: "--render-preview"), 
     for (languages, expected) in languageCases { precondition(L10n.language(for: languages) == expected) }
     let keys = ["no_battery", "charging", "fully_charged", "plugged_in", "on_battery", "time_to_full", "time_remaining", "show_percentage", "icon_theme", "launch_at_login", "login_approval", "about", "quit", "login_error_title", "login_error_body", "ok", "credits"]
     for language in ["en", "zh-Hans", "zh-Hant"] {
-        for key in keys + IconTheme.allCases.map(\.labelKey) {
+        for key in keys + IconTheme.allCases.map(\.labelKey).filter({ !$0.isEmpty }) + ThemeLibrary.localizationKeys {
             precondition(L10n.text(key, language: language) != key, "Missing translation: \(language)/\(key)")
         }
     }
