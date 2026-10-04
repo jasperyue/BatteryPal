@@ -58,10 +58,25 @@ enum ChargingAnimation {
     static func shouldBlink(at tick: Int) -> Bool { tick > 0 && tick % 6 == 0 }
 }
 
+// 菜单栏图标主题：电池表情（默认）或菠萝。原始值写入 UserDefaults 持久化。
+enum IconTheme: String, CaseIterable {
+    case battery
+    case pineapple
+    var labelKey: String { self == .battery ? "theme_battery" : "theme_pineapple" }
+}
+
 enum BatteryArt {
     // [AppKit] 用统一圆头线条绘制五官；ink 参数仅供深浅色预览使用。
     // 菜单栏仍然使用模板图像，由系统决定最终颜色。
-    static func image(_ state: BatteryState, ink: NSColor = .black, boltOpacity: CGFloat = 1, blink: Bool = false) -> NSImage {
+    // theme 选择电池表情或菠萝主题；两者共享同一状态规则与充电动画。
+    static func image(_ state: BatteryState, ink: NSColor = .black, boltOpacity: CGFloat = 1, blink: Bool = false, theme: IconTheme = .battery) -> NSImage {
+        switch theme {
+        case .battery: return batteryImage(state, ink: ink, boltOpacity: boltOpacity, blink: blink)
+        case .pineapple: return pineappleImage(state, ink: ink, boltOpacity: boltOpacity, blink: blink)
+        }
+    }
+    // 电池主题：圆角外壳 + 触点 + 底部电量轨道 + 表情。
+    static func batteryImage(_ state: BatteryState, ink: NSColor = .black, boltOpacity: CGFloat = 1, blink: Bool = false) -> NSImage {
         // [AppKit] 以原来的 38×22 坐标绘图，等比缩到 28×18 点画布并垂直居中。
         // 所有表情和缓存动画帧使用相同变换，避免切换状态时尺寸跳动。
         let image = NSImage(size: NSSize(width: 28, height: 18), flipped: false) { _ in
@@ -157,6 +172,121 @@ enum BatteryArt {
         image.isTemplate = true
         return image
     }
+
+    // 菠萝主题：叶片冠 + 椭圆果身 + 菱形纹理 + 表情 + 底部电量轨道。
+    // 与电池主题共用同一 38×22 坐标和缩放变换，切换主题时尺寸不跳动。
+    static func pineappleImage(_ state: BatteryState, ink: NSColor = .black, boltOpacity: CGFloat = 1, blink: Bool = false) -> NSImage {
+        let image = NSImage(size: NSSize(width: 28, height: 18), flipped: false) { _ in
+            NSGraphicsContext.saveGraphicsState()
+            defer { NSGraphicsContext.restoreGraphicsState() }
+            let scale: CGFloat = 28.0 / 38.0
+            let transform = NSAffineTransform()
+            transform.translateX(by: 0, yBy: (18 - 22 * scale) / 2)
+            transform.scale(by: scale)
+            transform.concat()
+            NSGraphicsContext.current?.shouldAntialias = true
+            ink.setStroke()
+            ink.setFill()
+            func path(_ points: [NSPoint], width: CGFloat = 1.2) {
+                let p = NSBezierPath()
+                p.lineWidth = width
+                p.lineCapStyle = .round
+                p.lineJoinStyle = .round
+                p.move(to: points[0])
+                for point in points.dropFirst() { p.line(to: point) }
+                p.stroke()
+            }
+            func curve(_ start: NSPoint, _ c1: NSPoint, _ c2: NSPoint, _ end: NSPoint, width: CGFloat = 1.2) {
+                let p = NSBezierPath()
+                p.lineWidth = width
+                p.lineCapStyle = .round
+                p.move(to: start)
+                p.curve(to: end, controlPoint1: c1, controlPoint2: c2)
+                p.stroke()
+            }
+            // 叶片冠：五片圆头短线向上张开。
+            path([NSPoint(x: 19, y: 15.2), NSPoint(x: 19, y: 20.8)], width: 1.4)
+            path([NSPoint(x: 15.4, y: 14.8), NSPoint(x: 13.2, y: 18.4)], width: 1.4)
+            path([NSPoint(x: 22.6, y: 14.8), NSPoint(x: 24.8, y: 18.4)], width: 1.4)
+            path([NSPoint(x: 17.2, y: 15.1), NSPoint(x: 16.0, y: 19.4)], width: 1.3)
+            path([NSPoint(x: 20.8, y: 15.1), NSPoint(x: 22.0, y: 19.4)], width: 1.3)
+            // 椭圆果身。
+            let body = NSBezierPath(ovalIn: NSRect(x: 7, y: 3, width: 24, height: 13))
+            body.lineWidth = 1.35
+            body.stroke()
+            // 菱形纹理：裁切到果身后画斜线，降低透明度以免抢表情。
+            NSGraphicsContext.saveGraphicsState()
+            body.addClip()
+            ink.withAlphaComponent(0.22).setStroke()
+            var c: CGFloat = -30
+            while c <= 30 {
+                path([NSPoint(x: -20, y: -20 + c), NSPoint(x: 60, y: 60 + c)], width: 0.7)
+                path([NSPoint(x: -20, y: 20 + c), NSPoint(x: 60, y: -60 + c)], width: 0.7)
+                c += 4.5
+            }
+            NSGraphicsContext.restoreGraphicsState()
+            ink.setStroke()
+            // 底部电量轨道，与电池主题一致。
+            if let percent = state.percent {
+                ink.withAlphaComponent(0.18).setStroke()
+                path([NSPoint(x: 7, y: 1), NSPoint(x: 26, y: 1)], width: 1.2)
+                ink.setStroke()
+                if percent > 0 {
+                    path([NSPoint(x: 7, y: 1), NSPoint(x: 7 + 19 * CGFloat(percent) / 100, y: 1)], width: 1.2)
+                }
+            }
+            switch state.mood {
+            case "low":
+                // 低电量：下垂眼睑、叹气嘴。
+                curve(NSPoint(x: 12, y: 12), NSPoint(x: 13, y: 10.6), NSPoint(x: 15, y: 10.6), NSPoint(x: 16, y: 11.2))
+                curve(NSPoint(x: 23, y: 11.2), NSPoint(x: 24, y: 10.6), NSPoint(x: 26, y: 10.6), NSPoint(x: 27, y: 12))
+                let mouth = NSBezierPath(ovalIn: NSRect(x: 17.5, y: 5.5, width: 3, height: 2.5))
+                mouth.lineWidth = 1
+                mouth.stroke()
+            case "normal":
+                // 普通电量：短椭圆眼睛、含蓄微笑。
+                for x: CGFloat in [13.5, 24.5] {
+                    NSBezierPath(ovalIn: NSRect(x: x - 0.95, y: 10.4, width: 1.9, height: 2.8)).fill()
+                }
+                curve(NSPoint(x: 16.5, y: 8.5), NSPoint(x: 18, y: 6.3), NSPoint(x: 21, y: 6.3), NSPoint(x: 22.5, y: 8.5))
+            case "high":
+                // 高电量：弯弯笑眼、张开笑嘴、淡淡脸颊。
+                for x: CGFloat in [13.5, 24.5] {
+                    curve(NSPoint(x: x - 2, y: 11), NSPoint(x: x - 1, y: 14), NSPoint(x: x + 1, y: 14), NSPoint(x: x + 2, y: 11))
+                }
+                let mouth = NSBezierPath()
+                mouth.move(to: NSPoint(x: 16.3, y: 9))
+                mouth.line(to: NSPoint(x: 22.7, y: 9))
+                mouth.curve(to: NSPoint(x: 16.3, y: 9), controlPoint1: NSPoint(x: 22, y: 4.4), controlPoint2: NSPoint(x: 17, y: 4.4))
+                mouth.close()
+                mouth.fill()
+                ink.withAlphaComponent(0.3).setStroke()
+                for x: CGFloat in [11, 26] { path([NSPoint(x: x, y: 8), NSPoint(x: x + 1.5, y: 8)], width: 1) }
+                ink.setStroke()
+            case "charging":
+                // 充电：左眼眨眼，右眼闪电，下方微笑。
+                if blink {
+                    path([NSPoint(x: 11, y: 11), NSPoint(x: 15, y: 11)])
+                } else {
+                    curve(NSPoint(x: 11, y: 11), NSPoint(x: 12, y: 13), NSPoint(x: 14, y: 13), NSPoint(x: 15, y: 11))
+                }
+                let bolt = NSBezierPath()
+                bolt.move(to: NSPoint(x: 27, y: 15.2))
+                for point in [NSPoint(x: 23.5, y: 11.2), NSPoint(x: 26, y: 11.2), NSPoint(x: 24.5, y: 7.9), NSPoint(x: 29, y: 12.5), NSPoint(x: 26.5, y: 12.5)] { bolt.line(to: point) }
+                bolt.close()
+                ink.withAlphaComponent(boltOpacity).setFill()
+                bolt.fill()
+                ink.setFill()
+                curve(NSPoint(x: 16.5, y: 8.5), NSPoint(x: 17.5, y: 5.5), NSPoint(x: 20.5, y: 5.5), NSPoint(x: 21.5, y: 8.5))
+            default:
+                // [Foundation + AppKit] 无电池状态显示问号。
+                ("?" as NSString).draw(at: NSPoint(x: 15, y: 4.5), withAttributes: [.font: NSFont.systemFont(ofSize: 12, weight: .medium), .foregroundColor: ink])
+            }
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }
 }
 
 // [Foundation] NSObject 是基类；[AppKit] 两个 Delegate 协议让系统回调应用/菜单事件。
@@ -169,6 +299,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var blinkEnd: DispatchWorkItem? // [Dispatch] 眨眼 0.15 秒后的单次复原任务。
     private var chargingFrames: [NSImage] = []
     private var cachedPercent: Int?
+    private var cachedTheme: IconTheme?
     private var animationTick = 0
     private var isBlinking = false
     private var screensSleeping = false
@@ -177,6 +308,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var showPercentage: Bool {
         get { UserDefaults.standard.object(forKey: "showPercentage") as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: "showPercentage") }
+    }
+    // [Foundation] 图标主题偏好：电池表情或菠萝，用原始值字符串持久化。
+    private var iconTheme: IconTheme {
+        get { IconTheme(rawValue: UserDefaults.standard.string(forKey: "iconTheme") ?? "") ?? .battery }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "iconTheme") }
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
         // [AppKit] NSStatusBar 创建 NSStatusItem；NSMenu 是点击图标时展开的菜单。
@@ -235,14 +371,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) // [AppKit]
         guard enabled else {
             stopAnimation()
-            item.button?.image = BatteryArt.image(state)
+            item.button?.image = BatteryArt.image(state, theme: iconTheme)
             return
         }
         // 仅在电量变化时重建三张缓存帧；秒级刷新直接复用图像。
-        if chargingFrames.isEmpty || cachedPercent != state.percent {
+        if chargingFrames.isEmpty || cachedPercent != state.percent || cachedTheme != iconTheme {
             cachedPercent = state.percent
-            chargingFrames = [BatteryArt.image(state), BatteryArt.image(state, boltOpacity: 0.35),
-                              BatteryArt.image(state, blink: true)]
+            cachedTheme = iconTheme
+            chargingFrames = [BatteryArt.image(state, theme: iconTheme),
+                              BatteryArt.image(state, boltOpacity: 0.35, theme: iconTheme),
+                              BatteryArt.image(state, blink: true, theme: iconTheme)]
         }
         showAnimationFrame()
         guard animationTimer == nil else { return }
@@ -296,6 +434,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         let percent = add(L10n.text("show_percentage"), action: #selector(togglePercentage), to: menu)
         percent.state = showPercentage ? .on : .off
+        // 图标主题子菜单：列出所有主题并勾选当前项。
+        let themeParent = NSMenuItem(title: L10n.text("icon_theme"), action: nil, keyEquivalent: "")
+        let themeMenu = NSMenu()
+        for (index, theme) in IconTheme.allCases.enumerated() {
+            let entry = NSMenuItem(title: L10n.text(theme.labelKey), action: #selector(selectTheme), keyEquivalent: "")
+            entry.target = self
+            entry.tag = index
+            entry.state = theme == iconTheme ? .on : .off
+            themeMenu.addItem(entry)
+        }
+        themeParent.submenu = themeMenu
+        menu.addItem(themeParent)
         // [ServiceManagement] 查询主 App 的登录启动状态。
         let service = SMAppService.mainApp
         let login = add(L10n.text(service.status == .requiresApproval ? "login_approval" : "launch_at_login"), action: #selector(toggleLogin), to: menu)
@@ -314,6 +464,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return entry
     }
     @objc private func togglePercentage() { showPercentage.toggle(); refresh() }
+    @objc private func selectTheme(_ sender: NSMenuItem) {
+        let all = IconTheme.allCases
+        guard all.indices.contains(sender.tag) else { return }
+        iconTheme = all[sender.tag]
+        refresh()
+    }
     @objc private func toggleLogin() {
         do {
             // [ServiceManagement] register 启用登录启动，unregister 关闭；
@@ -353,25 +509,32 @@ if let previewIndex = CommandLine.arguments.firstIndex(of: "--render-preview"), 
         BatteryState(percent: 47, charging: true, pluggedIn: true, minutes: nil), .unavailable]
     let titles = ["LOW", "NORMAL", "HIGH", "CHARGING", "NO BATTERY"]
     let details = ["0–20%", "21–79%", "80–100%", "Overrides level", "Unavailable"]
-    // [AppKit] 同一组矢量图分别在明暗背景绘制；每列同时展示放大图与实际 28×18 点尺寸。
-    let preview = NSImage(size: NSSize(width: 1000, height: 500), flipped: false) { _ in
-        for dark in [false, true] {
-            let base: CGFloat = dark ? 0 : 250
-            let ink: NSColor = dark ? .white : NSColor(white: 0.12, alpha: 1)
-            (dark ? NSColor(white: 0.10, alpha: 1) : NSColor(white: 0.97, alpha: 1)).setFill()
-            NSRect(x: 0, y: base, width: 1000, height: 250).fill()
-            for (index, state) in states.enumerated() {
-                let x = CGFloat(index * 200)
-                let icon = BatteryArt.image(state, ink: ink)
-                icon.isTemplate = false
-                icon.draw(in: NSRect(x: x + 58, y: base + 119, width: 84, height: 54))
-                icon.draw(in: NSRect(x: x + 86, y: base + 80, width: 28, height: 18))
-                let title = titles[index] as NSString
-                let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 12, weight: .semibold), .foregroundColor: ink]
-                title.draw(at: NSPoint(x: x + (200 - title.size(withAttributes: attrs).width) / 2, y: base + 48), withAttributes: attrs)
-                let detail = details[index] as NSString
-                let small: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: ink.withAlphaComponent(0.55)]
-                detail.draw(at: NSPoint(x: x + (200 - detail.size(withAttributes: small).width) / 2, y: base + 28), withAttributes: small)
+    // [AppKit] 两个主题分别在明暗背景绘制；每列同时展示放大图与实际 28×18 点尺寸。
+    let themes: [IconTheme] = [.battery, .pineapple]
+    let themeNames = ["BATTERY", "PINEAPPLE"]
+    let preview = NSImage(size: NSSize(width: 1000, height: 1000), flipped: false) { _ in
+        for (themeIndex, theme) in themes.enumerated() {
+            for dark in [false, true] {
+                let base: CGFloat = CGFloat(themeIndex * 2 + (dark ? 0 : 1)) * 250
+                let ink: NSColor = dark ? .white : NSColor(white: 0.12, alpha: 1)
+                (dark ? NSColor(white: 0.10, alpha: 1) : NSColor(white: 0.97, alpha: 1)).setFill()
+                NSRect(x: 0, y: base, width: 1000, height: 250).fill()
+                for (index, state) in states.enumerated() {
+                    let x = CGFloat(index * 200)
+                    let icon = BatteryArt.image(state, ink: ink, theme: theme)
+                    icon.isTemplate = false
+                    icon.draw(in: NSRect(x: x + 58, y: base + 119, width: 84, height: 54))
+                    icon.draw(in: NSRect(x: x + 86, y: base + 80, width: 28, height: 18))
+                    let title = titles[index] as NSString
+                    let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 12, weight: .semibold), .foregroundColor: ink]
+                    title.draw(at: NSPoint(x: x + (200 - title.size(withAttributes: attrs).width) / 2, y: base + 48), withAttributes: attrs)
+                    let detail = details[index] as NSString
+                    let small: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: ink.withAlphaComponent(0.55)]
+                    detail.draw(at: NSPoint(x: x + (200 - detail.size(withAttributes: small).width) / 2, y: base + 28), withAttributes: small)
+                }
+                let label = themeNames[themeIndex] as NSString
+                let labelAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11, weight: .bold), .foregroundColor: ink.withAlphaComponent(0.5)]
+                label.draw(at: NSPoint(x: 14, y: base + 12), withAttributes: labelAttrs)
             }
         }
         return true
@@ -386,7 +549,7 @@ if let previewIndex = CommandLine.arguments.firstIndex(of: "--render-preview"), 
         (["zh-CN"], "zh-Hans"), (["zh-SG"], "zh-Hans"), (["zh-Hans-TW"], "zh-Hans"),
         (["zh-TW"], "zh-Hant"), (["zh_HK"], "zh-Hant"), (["zh-Hant-CN"], "zh-Hant")]
     for (languages, expected) in languageCases { precondition(L10n.language(for: languages) == expected) }
-    let keys = ["no_battery", "charging", "fully_charged", "plugged_in", "on_battery", "time_to_full", "time_remaining", "show_percentage", "launch_at_login", "login_approval", "about", "quit", "login_error_title", "login_error_body", "ok", "credits"]
+    let keys = ["no_battery", "charging", "fully_charged", "plugged_in", "on_battery", "time_to_full", "time_remaining", "show_percentage", "icon_theme", "theme_battery", "theme_pineapple", "launch_at_login", "login_approval", "about", "quit", "login_error_title", "login_error_body", "ok", "credits"]
     for language in ["en", "zh-Hans", "zh-Hant"] {
         for key in keys {
             precondition(L10n.text(key, language: language) != key, "Missing translation: \(language)/\(key)")
@@ -417,6 +580,9 @@ if let previewIndex = CommandLine.arguments.firstIndex(of: "--render-preview"), 
         precondition(ChargingAnimation.shouldBlink(at: tick) == [6, 12].contains(tick))
     }
     print("PASS: animation eligibility (16 combinations), frame alternation and blink cadence")
+    precondition(IconTheme.allCases.map(\.rawValue) == ["battery", "pineapple"])
+    precondition(IconTheme.allCases.map(\.labelKey) == ["theme_battery", "theme_pineapple"])
+    print("PASS: \(IconTheme.allCases.count) icon themes")
     let actual = BatteryState.read()
     if let percent = actual.percent { precondition((0...100).contains(percent)) }
     print("PASS: \(cases.count) state cases; power source read: \(actual.percent.map(String.init) ?? "unavailable")")

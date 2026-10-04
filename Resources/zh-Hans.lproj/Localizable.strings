@@ -6,6 +6,9 @@
 "time_to_full" = "充满约需 %d小时%d分钟";
 "time_remaining" = "预计剩余 %d小时%d分钟";
 "show_percentage" = "显示电量百分比";
+"icon_theme" = "图标主题";
+"theme_battery" = "电池表情";
+"theme_pineapple" = "菠萝";
 "launch_at_login" = "登录时启动";
 "login_approval" = "登录启动（需要系统批准）…";
 "about" = "关于 Battery Pie";

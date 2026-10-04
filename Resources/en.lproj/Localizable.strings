@@ -6,6 +6,9 @@
 "time_to_full" = "About %d h %d min until full";
 "time_remaining" = "About %d h %d min remaining";
 "show_percentage" = "Show Battery Percentage";
+"icon_theme" = "Icon Theme";
+"theme_battery" = "Battery";
+"theme_pineapple" = "Pineapple";
 "launch_at_login" = "Launch at Login";
 "login_approval" = "Launch at Login (Approval Required)…";
 "about" = "About Battery Pie";
